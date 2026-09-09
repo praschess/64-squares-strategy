@@ -1,69 +1,74 @@
 # 64 Squares Strategy
 
-A zero-cost static website for Prasanna Rao's corporate speaking / workshop concept at the intersection of chess, business strategy, risk, and decision-making.
+Corporate speaking website + AWS-native RAG advisor for Prasanna Rao.
 
-## What is included
+## Architecture
 
-- Responsive one-page landing site
-- Corporate speaking positioning
-- Three session concepts
-- Interactive "Risk Lab"
-- Biography and credibility section
-- Speaking inquiry CTA
-- No framework, database, analytics, paid service, or build step required
+Frontend:
+- GitHub Pages
+- plain HTML/CSS/JavaScript
 
-## Launch checklist
+RAG backend:
+- AWS Lambda Function URL
+- Amazon Bedrock Knowledge Bases
+- Amazon S3 source documents
+- Amazon S3 Vectors vector store
+- Amazon Titan Text Embeddings V2
+- Amazon Nova Lite for response generation
 
-1. Open `index.html` and replace `YOUR_EMAIL_HERE` with your preferred booking email.
-2. Optionally replace the abstract portrait panel with a photo you own.
-3. Create a public GitHub repository and upload these files.
-4. In GitHub: Settings → Pages → Deploy from branch → `main` / root.
-5. Your site will be available free at `https://<username>.github.io/<repo>/`.
+## Why this architecture
 
-## Recommended repo name
+It avoids an always-on OpenSearch or Aurora vector database. The corpus is intentionally curated around speaker credibility, session IP, decision frameworks, formats, FAQs, and discovery questions.
 
-`64-squares-strategy`
+## Repository structure
 
-## Free stack
+- `index.html` — landing page
+- `css/chatbot.css` — chatbot UI
+- `js/chatbot.js` — browser chat logic
+- `backend/app.py` — Lambda RAG endpoint
+- `knowledge/` — source-of-truth Markdown used by Bedrock
+- `template.yaml` — AWS SAM / CloudFormation infrastructure
+- `scripts/deploy.sh` — deploy stack, upload knowledge, start ingestion
+- `scripts/configure-frontend.sh` — insert the deployed Lambda URL
 
-- Hosting: GitHub Pages — $0
-- SSL: included — $0
-- Code: plain HTML/CSS/JS — $0
-- Contact: mailto link — $0
-- Scheduling: add your existing calendar/booking link if you already use one; otherwise keep email
-- Analytics: skip at launch; GitHub Pages does not require it
+## AWS deployment
 
-## Before you pitch paid sessions
+Requirements:
+- AWS CLI authenticated to the target account
+- AWS SAM CLI
+- permission to create IAM, Lambda, S3, S3 Vectors, and Bedrock resources
+- Bedrock model access for Titan Text Embeddings V2 and Amazon Nova Lite in the selected Region
 
-Create these next:
+Default Region: `us-west-2`.
 
-- A 1-page speaker sheet (PDF)
-- A 45–60 minute flagship deck: **The Calculated Risk**
-- A 90-second speaker reel once you have footage
-- 3 short LinkedIn posts demonstrating the framework
-- 2–3 testimonials after the first sessions
-- A simple pricing ladder after initial validation
-- A professional portrait you own the rights to
+```bash
+./scripts/deploy.sh
+```
 
-## Positioning recommendation
+The script prints the Lambda Function URL. Then run:
 
-Do not sell "chess lessons for companies." Sell a business outcome:
+```bash
+./scripts/configure-frontend.sh "https://YOUR_FUNCTION_URL.lambda-url.us-west-2.on.aws/"
+git add .
+git commit -m "Connect AWS RAG advisor"
+git push
+```
 
-> Better decisions under uncertainty, taught through the mental models of competitive chess.
+## Updating knowledge
 
-The chess credential earns attention. The business/product background makes the material relevant. The interactive format makes it memorable.
+Edit files under `knowledge/`, sync them to the knowledge bucket, and start a new Bedrock ingestion job.
 
-## Suggested commercial ladder
+## Guardrails already in the code
 
-At launch, quote based on audience and customization rather than publishing a price publicly.
+- factual claims should come from retrieved sources
+- no invented clients, testimonials, prices, or chess games
+- one discovery question at a time
+- max 1,200-character visitor prompt
+- Lambda reserved concurrency capped at 2
+- no conversation database
+- CORS restricted to the configured website origin
+- Risk Lab explicitly treated as an illustrative teaching tool
 
-- Pilot / warm-network session: free to low-cost only when it produces footage, testimonial, or a strong logo/reference.
-- Standard corporate keynote: establish a meaningful paid floor once you have proof.
-- Workshop / executive retreat: price higher because of customization and interaction.
-- International / large-enterprise session: add travel and prep separately.
+## Cost note
 
-Avoid anchoring the public site at $10K–$20K before the proof assets exist. Build toward that range with testimonials, recognizable clients, repeatable IP, and strong session footage.
-
-## Accuracy / brand note
-
-The site intentionally uses employer names only as biographical context and does not use employer logos. Keep the affiliation disclaimer in the footer.
+Lambda and the public Function URL are serverless. Bedrock embeddings and generation are usage-priced, and S3/S3 Vectors are usage-priced. This architecture is designed to be inexpensive at small traffic, not to promise permanent $0 AWS spend.
